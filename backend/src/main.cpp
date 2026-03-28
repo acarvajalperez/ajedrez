@@ -66,6 +66,8 @@ int main() {
 
         json j;
         j["fen"] = game->getFEN();
+        j["playerName"] = game->getPlayerName();
+        j["playerEmail"] = game->getPlayerEmail();
         
         json history = json::array();
         for (const auto& m : game->getHistory()) {
@@ -74,6 +76,7 @@ int main() {
             moveObj["fromCol"] = m.fromCol;
             moveObj["toRow"] = m.toRow;
             moveObj["toCol"] = m.toCol;
+            moveObj["fen"] = m.fen_after;
             history.push_back(moveObj);
         }
         j["history"] = history;
@@ -107,7 +110,47 @@ int main() {
             res.status = 400;
         }
     });
-    
+
+    // Endpoint: Deshacer Movimiento (Undo)
+    svr.Post("/undo", [&](const httplib::Request& req, httplib::Response& res) {
+        set_cors(res);
+        try {
+            auto j = json::parse(req.body);
+            std::string gameId = j.value("gameId", "");
+            std::string playerColor = j.value("playerColor", "");
+            auto game = get_game(gameId);
+            if (!game) { res.status = 404; return; }
+
+            int pops = 1;
+            if (!playerColor.empty()) {
+                std::string fen = game->getFEN();
+                size_t spacePos = fen.find(' ');
+                if (spacePos != std::string::npos && spacePos + 1 < fen.size()) {
+                    std::string currentTurn = fen.substr(spacePos + 1, 1);
+                    if (currentTurn == playerColor) {
+                        pops = 2;
+                    }
+                }
+            }
+
+            bool success = false;
+            for (int i = 0; i < pops; ++i) {
+                if (game->undoMove()) {
+                    success = true;
+                } else {
+                    break;
+                }
+            }
+            
+            json resp;
+            resp["success"] = success;
+            resp["fen"] = game->getFEN();
+            res.set_content(resp.dump(), "application/json");
+        } catch (...) {
+            res.status = 400;
+        }
+    });
+
     // Endpoint: Movimiento de la IA
     svr.Post("/play", [&](const httplib::Request& req, httplib::Response& res) {
         set_cors(res);
@@ -155,20 +198,43 @@ int main() {
         res.set_content(resp.dump(), "application/json");
     });
 
+    // Endpoint: Obtener partidas activas
+    svr.Get("/active-games", [&](const httplib::Request& req, httplib::Response& res) {
+        set_cors(res);
+        json j = json::array();
+        {
+            std::lock_guard<std::mutex> lock(games_mutex);
+            for (const auto& pair : active_games) {
+                json gameInfo;
+                gameInfo["id"] = pair.first;
+                gameInfo["fen"] = pair.second->getFEN();
+                gameInfo["playerName"] = pair.second->getPlayerName();
+                gameInfo["playerEmail"] = pair.second->getPlayerEmail();
+                j.push_back(gameInfo);
+            }
+        }
+        res.set_content(j.dump(), "application/json");
+    });
+
     // Endpoint: Nueva Partida
     svr.Post("/reset", [&](const httplib::Request& req, httplib::Response& res) {
         set_cors(res);
         std::string custom_fen = "";
+        std::string pName = "Anon";
+        std::string pEmail = "N/A";
         
         try {
             if (!req.body.empty()) {
                 auto j = json::parse(req.body);
                 custom_fen = j.value("fen", "");
+                pName = j.value("playerName", "Anon");
+                pEmail = j.value("playerEmail", "N/A");
             }
         } catch(...) {}
         
         std::string new_id = generate_game_id();
         auto new_game = std::make_shared<Game>();
+        new_game->setPlayerInfo(pName, pEmail);
         if (!custom_fen.empty()) {
             new_game->setFEN(custom_fen);
         }

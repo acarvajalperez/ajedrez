@@ -1,8 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 
 export type Piece = { type: string; color: 'w' | 'b' } | null;
 
 export type Theme = 'classic_dark' | 'wood' | 'ocean' | 'neon';
+
+export interface StablePiece {
+  id: string;
+  type: string;
+  color: 'w' | 'b';
+  r: number;
+  c: number;
+  captured?: boolean;
+}
 
 interface ChessboardProps {
   fen: string;
@@ -13,6 +22,123 @@ interface ChessboardProps {
   theme?: Theme;
   playerColor?: 'w' | 'b';
 }
+
+let globalPieceIdCounter = 0;
+
+export const useStablePieces = (fen: string) => {
+  const cache = useRef<{ fen: string, pieces: StablePiece[] } | null>(null);
+
+  if (!cache.current) {
+    const grid = fenToGrid(fen);
+    const initialPieces: StablePiece[] = [];
+    let typeCounts: Record<string, number> = {};
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = grid[r][c];
+        if (p) {
+           const key = p.color + p.type;
+           typeCounts[key] = (typeCounts[key] || 0) + 1;
+           initialPieces.push({ id: `${key}_${typeCounts[key]}`, type: p.type, color: p.color, r, c });
+        }
+      }
+    }
+    cache.current = { fen, pieces: initialPieces };
+    return initialPieces;
+  }
+
+  if (cache.current.fen !== fen) {
+    const prevPieces = cache.current.pieces;
+    const grid = fenToGrid(fen);
+    
+    // Extraemos todas las piezas del nuevo FEN
+    const newGridPieces: {p: Piece, r: number, c: number}[] = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (grid[r][c]) newGridPieces.push({ p: grid[r][c], r, c });
+      }
+    }
+
+    // Copiamos el array anterior para mantener el orden exacto del DOM
+    const nextPieces = [...prevPieces];
+    const usedGridIndices = new Set<number>();
+    const exactlyMatchedOldIndices = new Set<number>();
+
+    // 1. Emparejamiento exacto: Si una pieza vieja sigue en el mismo sitio y es del mismo tipo
+    for (let i = 0; i < nextPieces.length; i++) {
+      const oldP = nextPieces[i];
+      const matchIdx = newGridPieces.findIndex((ngp, idx) => 
+        !usedGridIndices.has(idx) && 
+        ngp.r === oldP.r && ngp.c === oldP.c && 
+        ngp.p?.color === oldP.color && ngp.p?.type === oldP.type
+      );
+      if (matchIdx !== -1) {
+        usedGridIndices.add(matchIdx);
+        exactlyMatchedOldIndices.add(i);
+        nextPieces[i] = { ...oldP, captured: false };
+      }
+    }
+
+    // 2. Emparejamiento movido: Las piezas viejas que no encontraron sitio exacto
+    for (let i = 0; i < nextPieces.length; i++) {
+      if (exactlyMatchedOldIndices.has(i)) continue; // Si ya emparejó exacto, la ignoramos
+
+      const oldP = nextPieces[i];
+        // Esta pieza vieja se movió (o fue capturada)
+        let bestDist = Infinity;
+        let movedIdx = -1;
+
+        for (let j = 0; j < newGridPieces.length; j++) {
+          const ngp = newGridPieces[j];
+          if (!usedGridIndices.has(j) && ngp.p?.color === oldP.color && ngp.p?.type === oldP.type) {
+            const dist = Math.pow(ngp.r - oldP.r, 2) + Math.pow(ngp.c - oldP.c, 2);
+            if (dist < bestDist) {
+              bestDist = dist;
+              movedIdx = j;
+            }
+          }
+        }
+
+        if (movedIdx === -1) {
+           // Promociones (Si era un peón y ahora hay una reina sin emparejar)
+           // Buscamos la pieza del mismo color más cercana
+           bestDist = Infinity;
+           for (let j = 0; j < newGridPieces.length; j++) {
+             const ngp = newGridPieces[j];
+             if (!usedGridIndices.has(j) && ngp.p?.color === oldP.color) {
+               const dist = Math.pow(ngp.r - oldP.r, 2) + Math.pow(ngp.c - oldP.c, 2);
+               if (dist < bestDist) {
+                 bestDist = dist;
+                 movedIdx = j;
+               }
+             }
+           }
+        }
+
+        if (movedIdx !== -1) {
+          const ngp = newGridPieces[movedIdx];
+          nextPieces[i] = { ...oldP, type: ngp.p!.type, r: ngp.r, c: ngp.c, captured: false };
+          usedGridIndices.add(movedIdx);
+        } else {
+          // Ya no la enviamos a -10,-10 para que no salga volando. La mantenemos aquí como "fantasma".
+          nextPieces[i] = { ...oldP, captured: true }; 
+        }
+    }
+
+    // 3. Nuevas piezas (revividas o mágicamente aparecidas)
+    for (let i = 0; i < newGridPieces.length; i++) {
+      if (!usedGridIndices.has(i)) {
+        const ngp = newGridPieces[i];
+        const key = ngp.p!.color + ngp.p!.type;
+        globalPieceIdCounter++;
+        nextPieces.push({ id: `${key}_new_${ngp.r}_${ngp.c}_${globalPieceIdCounter}`, type: ngp.p!.type, color: ngp.p!.color, r: ngp.r, c: ngp.c });
+      }
+    }
+
+    cache.current = { fen, pieces: nextPieces };
+  }
+
+  return cache.current.pieces;
+};
 
 export const fenToGrid = (fen: string): Piece[][] => {
   const parts = fen.split(' ')[0];
@@ -290,22 +416,20 @@ export const evaluateGameStatus = (fen: string) => {
 
 export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, showNotation = false, flipBoard = false, theme = 'classic_dark', playerColor }) => {
   const grid = fenToGrid(fen);
+  const stablePieces = useStablePieces(fen);
   const { kingInCheck } = evaluateGameStatus(fen);
   const size = 800;
   const squareSize = size / 8;
   const svgRef = useRef<SVGSVGElement>(null);
   
-  const [activeDrag, setActiveDrag] = useState<{r: number, c: number, x: number, y: number} | null>(null);
+  const [activeDrag, setActiveDrag] = useState<{id: string, r: number, c: number, x: number, y: number} | null>(null);
   const [validMoves, setValidMoves] = useState<{r: number, c: number}[]>([]);
   const [pendingPromotion, setPendingPromotion] = useState<{fromSquare: string, targetSquare: string} | null>(null);
 
   const colToFile = (c: number) => String.fromCharCode('a'.charCodeAt(0) + c);
   const rowToRank = (r: number) => (8 - r).toString();
 
-  const handlePointerDown = (e: React.PointerEvent, r: number, c: number) => {
-    const piece = grid[r][c];
-    if (!piece) return;
-    
+  const handlePointerDown = (e: React.PointerEvent, piece: StablePiece) => {
     // Check if the game is already over!
     const { isCheckmate, isDraw } = evaluateGameStatus(fen);
     if (isCheckmate || isDraw) return;
@@ -316,8 +440,8 @@ export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, s
     if (playerColor && piece.color !== playerColor) return;
     
     (e.target as Element).setPointerCapture(e.pointerId);
-    setActiveDrag({ r, c, x: 0, y: 0 });
-    setValidMoves(getValidMoves(grid, r, c, fen));
+    setActiveDrag({ id: piece.id, r: piece.r, c: piece.c, x: 0, y: 0 });
+    setValidMoves(getValidMoves(grid, piece.r, piece.c, fen));
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -461,30 +585,37 @@ export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, s
       })}
 
       {/* Render pieces after backgrounds to ensure dragged piece is on top */}
-      {grid.map((row, r) => 
-        row.map((piece, c) => {
-          if (!piece) return null;
-          const isDragging = activeDrag?.r === r && activeDrag?.c === c;
+      {stablePieces.map((piece) => {
+          const isDragging = activeDrag !== null && activeDrag.id === piece.id && activeDrag.r === piece.r && activeDrag.c === piece.c;
           
-          const visR = flipBoard ? 7 - r : r;
-          const visC = flipBoard ? 7 - c : c;
+          const visR = flipBoard ? 7 - piece.r : piece.r;
+          const visC = flipBoard ? 7 - piece.c : piece.c;
           
-          let px = visC * squareSize + squareSize / 2;
-          let py = visR * squareSize + squareSize / 2 + (squareSize * 0.85 * 0.33);
+          let tx = visC * squareSize;
+          let ty = visR * squareSize;
           
           if (isDragging) {
-            px += activeDrag.x;
-            py += activeDrag.y;
+            tx += activeDrag.x;
+            ty += activeDrag.y;
           }
-          
           
           const pStyle = getPieceStyle(theme || 'classic_dark', piece.color);
           
           return (
-            <g key={`piece-${r}-${c}`} style={{ pointerEvents: isDragging ? 'none' : 'auto' }}>
+            <g 
+              key={piece.id} 
+              style={{ 
+                pointerEvents: isDragging || piece.captured ? 'none' : 'auto', 
+                transform: `translate(${tx}px, ${ty}px) scale(${piece.captured ? 0.3 : 1})`,
+                transition: isDragging ? 'none' : 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                zIndex: isDragging ? 1000 : (piece.captured ? 0 : 1),
+                opacity: piece.captured ? 0 : 1
+              }}
+              onPointerDown={(e) => handlePointerDown(e, piece)}
+            >
               <text
-                x={px}
-                y={py}
+                x={squareSize / 2}
+                y={squareSize / 2 + (squareSize * 0.85 * 0.33)}
                 fontSize={squareSize * 0.85}
                 textAnchor="middle"
                 fill={pStyle.fill}
@@ -495,18 +626,16 @@ export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, s
                   cursor: isDragging ? 'grabbing' : 'grab', 
                   paintOrder: 'stroke',
                   userSelect: 'none',
-                  transition: isDragging ? 'none' : 'all 0.1s ease',
                   transform: isDragging ? 'scale(1.1)' : 'scale(1)',
-                  transformOrigin: `${px}px ${py}px`
+                  transformOrigin: `${squareSize/2}px ${squareSize/2 + (squareSize * 0.85 * 0.33)}px`,
+                  transition: 'transform 0.1s ease'
                 }}
-                onPointerDown={(e) => handlePointerDown(e, r, c)}
               >
                 {PIECE_UNICODE[piece.type]}
               </text>
             </g>
           );
-        })
-      )}
+      })}
 
       {/* HTML Dialog Overlay for Pawn Promotion using foreignObject */}
       {pendingPromotion && (

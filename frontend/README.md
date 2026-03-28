@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# Ajedrez Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este es el frontend para la aplicación de Ajedrez, construido con [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) y [Vite](https://vitejs.dev/).
 
-Currently, two official plugins are available:
+## Requisitos previos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js (versión 18 o superior recomendada)
+- npm o yarn
 
-## React Compiler
+## Instalación y ejecución
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Instala las dependencias:
+   ```bash
+   npm install
+   ```
 
-## Expanding the ESLint configuration
+2. Inicia el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Configuración de Credenciales OAuth2 (Google Sign-In)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+La aplicación utiliza Google Sign-In para la autenticación de usuarios. Para que el inicio de sesión funcione correctamente, debes configurar tus propias credenciales de cliente OAuth 2.0.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Pasos para actualizar las credenciales:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Ve a la consola de Google Cloud (GCP) y crea o selecciona tu proyecto.
+2. Navega a **API y Servicios** > **Credenciales**.
+3. Crea un ID de cliente de OAuth 2.0 para una **Aplicación web**.
+4. Añade los orígenes de JavaScript autorizados (por ejemplo, `http://localhost:5173` para desarrollo local).
+5. Copia tu **ID de cliente** (termina en `.apps.googleusercontent.com`).
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Aplicar las credenciales en el código:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. Abre el archivo principal de la aplicación:
+   `src/main.tsx`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2. Busca la constante `GOOGLE_CLIENT_ID` (alrededor de la línea 8):
+   ```tsx
+   const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // REEMPLAZAR CON TU CLIENT ID
+   ```
+
+3. Reemplaza el valor de la cadena con tu ID de cliente de Google Cloud Console.
+
+4. Guarda el archivo. El servidor de desarrollo recargará automáticamente la aplicación.
+
+## Scripts disponibles
+
+- `npm run dev`: Inicia el servidor de desarrollo.
+- `npm run build`: Construye la aplicación para producción.
+- `npm run preview`: Sirve localmente la versión de producción previamente construida.

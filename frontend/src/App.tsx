@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Chessboard, evaluateGameStatus } from './Chessboard'
 import { BoardEditor } from './BoardEditor'
 import { ChessClock } from './ChessClock'
+import { GoogleLogin } from '@react-oauth/google'
+import { jwtDecode } from 'jwt-decode'
 import './index.css'
 
 function App() {
+  const [user, setUser] = useState<any>(null)
+  
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w')
   const [fen, setFen] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
   const [history, setHistory] = useState<any[]>([])
   const [status, setStatus] = useState('Conectando al motor...')
+  const [previewFen, setPreviewFen] = useState<string | null>(null)
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
   const [aiThinking, setAiThinking] = useState(false)
   const [timeLimit, setTimeLimit] = useState(1.5)
   const [threads, setThreads] = useState(4)
@@ -35,6 +41,39 @@ function App() {
     { label: '10+0', type: 'Rapid' }, { label: '10+5', type: 'Rapid' }, { label: '15+10', type: 'Rapid' },
     { label: '30+0', type: 'Classical' }, { label: '30+20', type: 'Classical' }, { label: 'Custom', type: '' }
   ];
+
+  const animationTimeoutRef = useRef<any>(null);
+
+  const handleHistoryClick = (targetIndex: number) => {
+    if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current);
+
+    const startIndex = previewIndex !== null ? previewIndex : history.length - 1;
+    let curr = startIndex;
+
+    if (curr === targetIndex) return;
+
+    const step = () => {
+      if (curr < targetIndex) curr++;
+      else if (curr > targetIndex) curr--;
+      
+      setPreviewIndex(curr);
+      setPreviewFen(history[curr].fen);
+
+      if (curr !== targetIndex) {
+        // La transición CSS dura 200ms. Disparando el siguiente estado a los 140ms (70%)
+        // la reactivación cruzará la recta final de la pieza anterior con el inicio de la siguiente.
+        animationTimeoutRef.current = setTimeout(step, 140);
+      } else {
+        animationTimeoutRef.current = null;
+        if (targetIndex === history.length - 1) {
+          setPreviewFen(null);
+          setPreviewIndex(null);
+        }
+      }
+    };
+
+    step();
+  };
   
   // Infiere IP Dinámica (permite conectar desde móvil y PC a la vez apuntando a la IP local correcta)
   const host = window.location.hostname === '0.0.0.0' ? '127.0.0.1' : window.location.hostname;
@@ -142,7 +181,11 @@ function App() {
       const res = await fetch(`${backendUrl}/reset`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fen: customFen.trim() })
+        body: JSON.stringify({ 
+            fen: customFen.trim(),
+            playerName: user?.name || user?.given_name || 'Anon',
+            playerEmail: user?.email || 'N/A'
+        })
       })
       if (res.ok) {
         const data = await res.json()
@@ -211,8 +254,33 @@ function App() {
       if (res.ok) {
         const data = await res.json()
         if (data.success) {
+          if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current);
           setFen(data.fen)
+          setPreviewFen(null)
+          setPreviewIndex(null)
           fetchState(gameId) // to get updated history
+          updateStatus(data.fen)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleUndo = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/undo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId, playerColor })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          setFen(data.fen)
+          setPreviewFen(null)
+          setPreviewIndex(null)
+          fetchState(gameId)
           updateStatus(data.fen)
         }
       }
@@ -266,8 +334,48 @@ function App() {
     );
   };
 
+  if (!user) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', background: '#0d1117', color: '#c9d1d9', fontFamily: 'sans-serif' }}>
+        <h1 style={{ fontSize: '4rem', marginBottom: '1rem', textShadow: '0 0 20px rgba(88,166,255,0.5)', color: '#fff' }}>
+          Motor de Ajedrez
+        </h1>
+        <p style={{ fontSize: '1.2rem', marginBottom: '3rem', color: '#8b949e' }}>
+          Auténticate para acceder a las partidas y la configuración del motor.
+        </p>
+        
+        <div style={{ background: '#161b22', padding: '3rem 4rem', borderRadius: '16px', boxShadow: '0 15px 35px rgba(0,0,0,0.8)', border: '1px solid #30363d', textAlign: 'center' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '2rem', borderBottom: '1px solid #30363d', paddingBottom: '1rem' }}>
+            Acceder
+          </h2>
+          <GoogleLogin
+            onSuccess={(credentialResponse) => {
+              if (credentialResponse.credential) {
+                try {
+                  const decoded = jwtDecode(credentialResponse.credential)
+                  setUser(decoded)
+                } catch(e) { console.error("Error decoding token", e) }
+              }
+            }}
+            onError={() => {
+              console.error('Login Failed')
+            }}
+            theme="filled_black"
+            shape="rectangular"
+            size="large"
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app-container">
+      <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', alignItems: 'center', gap: '0.8rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #30363d' }}>
+        {user.picture && <img src={user.picture} style={{ width: '30px', height: '30px', borderRadius: '50%' }} alt="Avatar" />}
+        <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user.given_name || user.name || 'Jugador'}</span>
+        <button onClick={() => setUser(null)} style={{ background: 'transparent', border: 'none', color: '#f85149', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>Salir</button>
+      </div>
 
 
       <div className="game-layout">
@@ -280,8 +388,15 @@ function App() {
             />
           ) : (
             <Chessboard 
-              fen={fen} 
-              onDrop={onDrop} 
+              fen={previewFen || fen} 
+              onDrop={(from, to, promo) => {
+                if(previewFen) {
+                  if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current);
+                  setPreviewFen(null);
+                  setPreviewIndex(null);
+                }
+                onDrop(from, to, promo);
+              }} 
               showNotation={showNotation}
               flipBoard={flipBoard}
               theme={boardTheme}
@@ -452,12 +567,23 @@ function App() {
 
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <h3 style={{ marginTop: 0 }}>Historial de Movimientos</h3>
-                        <div className="history-container" style={{ flex: 1 }}>
+                        <div className="history-container" style={{ flex: 1, overflowY: 'auto' }}>
                           {history.length === 0 ? (
                             <div style={{color: '#8b949e', fontStyle: 'italic', textAlign: 'center'}}>No hay movimientos</div>
                           ) : (
                             history.map((m, i) => (
-                              <div key={i} className="history-item">
+                              <div 
+                                key={i} 
+                                className="history-item" 
+                                style={{ 
+                                  cursor: 'pointer', 
+                                  background: previewIndex === i ? 'rgba(88,166,255,0.2)' : 'transparent',
+                                  transition: 'all 0.3s ease-out',
+                                  padding: '0.4rem',
+                                  borderRadius: '4px'
+                                }}
+                                onClick={() => handleHistoryClick(i)}
+                              >
                                 <span>Jugada {i + 1}</span>
                                 <span>{formatSquare(m.fromRow, m.fromCol)} → {formatSquare(m.toRow, m.toCol)}</span>
                               </div>
@@ -466,8 +592,16 @@ function App() {
                         </div>
                       </div>
 
-                      <div className="btn-group" style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-                        <button className="btn-primary" onClick={() => fetchState(gameId)}>Refrescar SVG</button>
+                      <div className="btn-group" style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {previewFen && (
+                          <button className="btn-primary" style={{ background: '#238636' }} onClick={() => handleHistoryClick(history.length - 1)}>
+                            Volver a Posición Actual
+                          </button>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button className="btn-primary" style={{ flex: 1 }} onClick={handleUndo}>↶ Deshacer</button>
+                          <button className="btn-primary" style={{ flex: 1 }} onClick={() => fetchState(gameId)}>Refrescar</button>
+                        </div>
                         <button className="btn-danger" onClick={() => { setIsGameOver(true); setStatus('¡RESIGNACIÓN! Partida Abortada'); }}>Abortar Resignación</button>
                       </div>
                     </>

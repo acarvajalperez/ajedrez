@@ -1,6 +1,8 @@
 #ifndef PIECE_H
 #define PIECE_H
 
+#include <string>
+
 enum class Color { White, Black };
 
 enum class PieceType { Pawn, Knight, Bishop, Rook, Queen, King, None };
@@ -17,6 +19,7 @@ struct Move {
     int toRow, toCol;
     PieceType promotion; // None if not promotion
     bool isCapture = false;
+    std::string fen_after;
 };
 
 #endif
