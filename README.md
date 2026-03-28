@@ -89,9 +89,22 @@ make -j4
 
 **2. Lanzar el Frontend (React)**
 ```bash
-*(El servidor web proveerá la UI mediante Vite (e.g. localhost:5174))*
+cd frontend
+npm install
+npm run dev
+```
+*(El servidor web proveerá la UI mediante Vite en `http://localhost:5174`)*
 
 Ajusta la dificultad, los hilos multicore y el tiempo de respuesta en GFLOPS desde la interfaz táctil, y descubre si puedes sobrevivir a esta bestia.
+
+### 🐳 Ejecución con Docker (Recomendado)
+
+Si prefieres no instalar dependencias locales, puedes desplegar todo el entorno al instante usando Docker y Docker Compose:
+
+```bash
+docker-compose up --build -d
+```
+Esto construirá y levantará tanto el motor C++ en el puerto `8080` como el frontend accesible en `http://localhost:5174`.
 
 ---
 
