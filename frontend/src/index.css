@@ -59,13 +59,13 @@ header p {
   width: 100%;
   justify-content: center;
   align-items: flex-start;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .board-container {
-  width: 80vmin;
-  height: 80vmin;
-  flex: 0 0 80vmin;
+  width: min(65vw, 85vh);
+  height: min(65vw, 85vh);
+  flex: 0 0 auto;
   background: var(--panel-bg);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
@@ -77,8 +77,8 @@ header p {
 }
 
 .side-panel {
-  flex: 1 1 300px;
-  max-width: 400px;
+  width: 30vw;
+  flex: 0 0 30vw;
   background: var(--panel-bg);
   padding: 1.5rem;
   border-radius: 12px;
@@ -87,6 +87,7 @@ header p {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  box-sizing: border-box;
 }
 
 .status-badge {

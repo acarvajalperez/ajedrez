@@ -13,10 +13,10 @@ export const ChessClock: React.FC<ClockProps> = ({ timeSeconds, active, colorNam
   
   const formatted = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   
-  // Minute hand: 360 degrees per 60 minutes
-  const minDeg = (m / 60) * 360;
+  // Minute hand: 360 degrees per 60 minutes (3600 seconds)
+  const minDeg = (timeSeconds / 3600) * 360;
   // Second hand: 360 degrees per 60 seconds
-  const secDeg = (s / 60) * 360;
+  const secDeg = (timeSeconds / 60) * 360;
 
   return (
     <div style={{ 
@@ -39,35 +39,37 @@ export const ChessClock: React.FC<ClockProps> = ({ timeSeconds, active, colorNam
           /* Analog Clock Face */
           <div style={{ 
             position: 'relative', 
-            width: '60px', height: '60px', 
+            width: '100%',
+            aspectRatio: '1 / 1', 
             borderRadius: '50%', 
             background: '#fff', 
-            border: '4px solid #111',
-            boxShadow: 'inset 0 0 5px rgba(0,0,0,0.3)'
+            border: '6px solid #111',
+            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.3)',
+            boxSizing: 'border-box'
           }}>
-            {/* Tic marks (optional, just 12, 3, 6, 9) */}
-            <div style={{ position: 'absolute', top: 2, left: '50%', width: 2, height: 5, background: '#333', transform: 'translateX(-50%)' }} />
-            <div style={{ position: 'absolute', bottom: 2, left: '50%', width: 2, height: 5, background: '#333', transform: 'translateX(-50%)' }} />
-            <div style={{ position: 'absolute', top: '50%', left: 2, width: 5, height: 2, background: '#333', transform: 'translateY(-50%)' }} />
-            <div style={{ position: 'absolute', top: '50%', right: 2, width: 5, height: 2, background: '#333', transform: 'translateY(-50%)' }} />
+            {/* Tic marks (12, 3, 6, 9) */}
+            <div style={{ position: 'absolute', top: '4%', left: '50%', width: '3%', height: '8%', background: '#333', transform: 'translateX(-50%)' }} />
+            <div style={{ position: 'absolute', bottom: '4%', left: '50%', width: '3%', height: '8%', background: '#333', transform: 'translateX(-50%)' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '4%', width: '8%', height: '3%', background: '#333', transform: 'translateY(-50%)' }} />
+            <div style={{ position: 'absolute', top: '50%', right: '4%', width: '8%', height: '3%', background: '#333', transform: 'translateY(-50%)' }} />
 
             {/* Minute Hand */}
             <div style={{ 
-              position: 'absolute', top: '50%', left: '50%', width: '4px', height: '20px', 
-              background: '#222', borderRadius: '2px',
+              position: 'absolute', top: '50%', left: '50%', width: '6%', height: '35%', 
+              background: '#222', borderRadius: '4px',
               transformOrigin: 'bottom center', transform: `translate(-50%, -100%) rotate(${minDeg}deg)`,
-              transition: 'transform 0.5s linear'
+              transition: 'transform 1s linear'
             }} />
             {/* Second Hand */}
             <div style={{ 
-              position: 'absolute', top: '50%', left: '50%', width: '2px', height: '26px', 
+              position: 'absolute', top: '50%', left: '50%', width: '3%', height: '45%', 
               background: '#d73a49', 
               transformOrigin: 'bottom center', transform: `translate(-50%, -100%) rotate(${secDeg}deg)`,
-              transition: 'transform 0.2s linear'
+              transition: 'transform 1s linear'
             }} />
             {/* Center Pin */}
             <div style={{ 
-              position: 'absolute', top: '50%', left: '50%', width: '8px', height: '8px', 
+              position: 'absolute', top: '50%', left: '50%', width: '12%', height: '12%', 
               background: '#111', borderRadius: '50%', transform: 'translate(-50%, -50%)'
             }} />
           </div>

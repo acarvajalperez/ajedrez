@@ -11,6 +11,7 @@ interface ChessboardProps {
   showNotation?: boolean;
   flipBoard?: boolean;
   theme?: Theme;
+  playerColor?: 'w' | 'b';
 }
 
 const fenToGrid = (fen: string): Piece[][] => {
@@ -287,7 +288,7 @@ export const evaluateGameStatus = (fen: string) => {
   };
 };
 
-export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, showNotation = true, flipBoard = false, theme = 'classic_dark' }) => {
+export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, showNotation = false, flipBoard = false, theme = 'classic_dark', playerColor }) => {
   const grid = fenToGrid(fen);
   const { kingInCheck } = evaluateGameStatus(fen);
   const size = 800;
@@ -311,6 +312,8 @@ export const Chessboard: React.FC<ChessboardProps> = ({ fen, onDrop, lastMove, s
     
     const currentTurn = fen.split(' ')[1] || 'w';
     if (piece.color !== currentTurn) return;
+
+    if (playerColor && piece.color !== playerColor) return;
     
     (e.target as Element).setPointerCapture(e.pointerId);
     setActiveDrag({ r, c, x: 0, y: 0 });
