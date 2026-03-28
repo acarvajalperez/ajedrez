@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ajedrez_engine_cpp
+    ports:
+      - "8080:8080" # Expone el puerto del micro-servidor C++
+    networks:
+      - ajedrez_net
+    restart: unless-stopped
+    # Ajustes opcionales para maximizar el acceso al Multi-Threading nativo
+    deploy:
+      resources:
+        limits:
+          cpus: '0' # Ilimitado (acceso libre al Hyper-threading del Host)
+    
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ajedrez_frontend_react
+    ports:
+      - "5174:80" # Expone el puerto 80 interno del Nginx localmente en el 5174 (Como Vite original)
+    networks:
+      - ajedrez_net
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+networks:
+  ajedrez_net:
+    driver: bridge

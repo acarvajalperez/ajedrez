@@ -1,0 +1,3 @@
+/home/antonio/src/ajedrez/backend/build/CMakeFiles/ajedrez_engine.dir
+/home/antonio/src/ajedrez/backend/build/CMakeFiles/edit_cache.dir
+/home/antonio/src/ajedrez/backend/build/CMakeFiles/rebuild_cache.dir
