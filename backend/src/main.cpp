@@ -158,13 +158,23 @@ int main() {
     // Endpoint: Nueva Partida
     svr.Post("/reset", [&](const httplib::Request& req, httplib::Response& res) {
         set_cors(res);
+        std::string custom_fen = "";
+        
+        try {
+            if (!req.body.empty()) {
+                auto j = json::parse(req.body);
+                custom_fen = j.value("fen", "");
+            }
+        } catch(...) {}
         
         std::string new_id = generate_game_id();
         auto new_game = std::make_shared<Game>();
+        if (!custom_fen.empty()) {
+            new_game->setFEN(custom_fen);
+        }
         {
             std::lock_guard<std::mutex> lock(games_mutex);
             active_games[new_id] = new_game;
-            // Opcional: Podríamos implementar limpieza de IDs viejos aquí para liberar memoria
         }
         
         json resp;

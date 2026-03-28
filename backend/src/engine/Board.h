@@ -13,6 +13,7 @@ public:
     Board();
     void resetToInitialState();
     Piece getPiece(int row, int col) const;
+    void parseFEN(const std::string& fen);
     void setPiece(int row, int col, Piece p);
     void movePiece(const Move& m);
     std::string toFEN() const;

@@ -32,6 +32,82 @@ void Board::resetToInitialState() {
     }
 }
 
+void Board::parseFEN(const std::string& fen) {
+    if (fen.empty()) return;
+    
+    for(int r=0; r<8; r++)
+        for(int c=0; c<8; c++)
+            grid[r][c] = {PieceType::None, Color::White};
+            
+    castlingK = castlingQ = castlingk = castlingq = false;
+    enPassantTarget = "-";
+    turnToMove = Color::White;
+    
+    int row = 0;
+    int col = 0;
+    size_t pos = 0;
+    
+    // Parse board
+    while (pos < fen.length() && fen[pos] != ' ') {
+        char c = fen[pos];
+        if (c == '/') {
+            row++;
+            col = 0;
+        } else if (isdigit(c)) {
+            col += (c - '0');
+        } else {
+            Piece p;
+            p.color = isupper(c) ? Color::White : Color::Black;
+            char lc = tolower(c);
+            switch(lc) {
+                case 'p': p.type = PieceType::Pawn; break;
+                case 'n': p.type = PieceType::Knight; break;
+                case 'b': p.type = PieceType::Bishop; break;
+                case 'r': p.type = PieceType::Rook; break;
+                case 'q': p.type = PieceType::Queen; break;
+                case 'k': p.type = PieceType::King; break;
+                default: p.type = PieceType::None; break;
+            }
+            if (row < 8 && col < 8) {
+                grid[row][col] = p;
+                col++;
+            }
+        }
+        pos++;
+    }
+    
+    // Parse turn
+    if (pos < fen.length() && fen[pos] == ' ') {
+        pos++;
+        if (pos < fen.length()) {
+            turnToMove = (fen[pos] == 'b') ? Color::Black : Color::White;
+            pos++;
+        }
+    }
+    
+    // Parse castling
+    if (pos < fen.length() && fen[pos] == ' ') {
+        pos++;
+        while (pos < fen.length() && fen[pos] != ' ') {
+            if (fen[pos] == 'K') castlingK = true;
+            else if (fen[pos] == 'Q') castlingQ = true;
+            else if (fen[pos] == 'k') castlingk = true;
+            else if (fen[pos] == 'q') castlingq = true;
+            pos++;
+        }
+    }
+    
+    // Parse en passant
+    if (pos < fen.length() && fen[pos] == ' ') {
+        pos++;
+        enPassantTarget = "";
+        while (pos < fen.length() && fen[pos] != ' ') {
+            enPassantTarget += fen[pos];
+            pos++;
+        }
+    }
+}
+
 Piece Board::getPiece(int row, int col) const {
     if (row >= 0 && row < 8 && col >= 0 && col < 8) return grid[row][col];
     return {PieceType::None, Color::White};

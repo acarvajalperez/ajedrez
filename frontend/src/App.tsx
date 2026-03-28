@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Chessboard, evaluateGameStatus } from './Chessboard'
+import { BoardEditor } from './BoardEditor'
 import { ChessClock } from './ChessClock'
 import './index.css'
 
@@ -22,10 +23,11 @@ function App() {
   const [gameStarted, setGameStarted] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [gameId, setGameId] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'estado' | 'configuracion'>('estado')
+  const [activeTab, setActiveTab] = useState<'estado' | 'configuracion' | 'editor'>('estado')
   const [timeControl, setTimeControl] = useState('10+0')
   const [customMins, setCustomMins] = useState(15)
   const [customInc, setCustomInc] = useState(10)
+  const [customFen, setCustomFen] = useState('')
 
   const timeOptions = [
     { label: '1+0', type: 'Bullet' }, { label: '2+1', type: 'Bullet' }, { label: '3+0', type: 'Blitz' },
@@ -137,7 +139,11 @@ function App() {
 
       setPlayerColor(color)
       setFlipBoard(color === 'b')
-      const res = await fetch(`${backendUrl}/reset`, { method: 'POST' })
+      const res = await fetch(`${backendUrl}/reset`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fen: customFen.trim() })
+      })
       if (res.ok) {
         const data = await res.json()
         if (data.gameId) {
@@ -266,17 +272,25 @@ function App() {
 
       <div className="game-layout">
         <div className="board-container" style={{ position: 'relative' }}>
-          <Chessboard 
-            fen={fen} 
-            onDrop={onDrop} 
-            showNotation={showNotation}
-            flipBoard={flipBoard}
-            theme={boardTheme}
-            playerColor={playerColor}
-            lastMove={history.length > 0 
-              ? { ...history[history.length - 1], color: history.length % 2 === 0 ? 'b' : 'w' } 
-              : undefined}
-          />
+          {activeTab === 'editor' ? (
+            <BoardEditor 
+              initialFen={customFen}
+              theme={boardTheme}
+              onChange={(fen) => setCustomFen(fen)}
+            />
+          ) : (
+            <Chessboard 
+              fen={fen} 
+              onDrop={onDrop} 
+              showNotation={showNotation}
+              flipBoard={flipBoard}
+              theme={boardTheme}
+              playerColor={playerColor}
+              lastMove={history.length > 0 
+                ? { ...history[history.length - 1], color: history.length % 2 === 0 ? 'b' : 'w' } 
+                : undefined}
+            />
+          )}
           {gameStarted && isGameOver && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 20 }}>
               <div style={{ background: '#161b22', border: '1px solid #30363d', padding: '3rem 4rem', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.8)', textAlign: 'center', animation: 'fadeIn 0.3s ease-out' }}>
@@ -343,7 +357,12 @@ function App() {
               <button 
                 onClick={() => setActiveTab('configuracion')}
                 style={{ flex: 1, padding: '0.8rem', background: 'transparent', color: activeTab === 'configuracion' ? '#58a6ff' : '#8b949e', border: 'none', borderBottom: activeTab === 'configuracion' ? '2px solid #58a6ff' : '2px solid transparent', borderRadius: 0, fontWeight: 'bold' }}>
-                CONFIGURACIÓN
+                CONF.
+              </button>
+              <button 
+                onClick={() => setActiveTab('editor')}
+                style={{ flex: 1, padding: '0.8rem', background: 'transparent', color: activeTab === 'editor' ? '#58a6ff' : '#8b949e', border: 'none', borderBottom: activeTab === 'editor' ? '2px solid #58a6ff' : '2px solid transparent', borderRadius: 0, fontWeight: 'bold' }}>
+                EDITOR
               </button>
             </div>
 
@@ -456,6 +475,23 @@ function App() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {/* FEN Custom Inicial (Fase 1) */}
+                  <div style={{ background: 'var(--color-neutral-muted, rgba(110,118,129,0.1))', padding: '1rem', borderRadius: '8px' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Jugar FEN Personalizado (Vacío = Clásico):</label>
+                    <input 
+                      type="text" 
+                      value={customFen} 
+                      onChange={(e) => { setCustomFen(e.target.value); if(activeTab === 'configuracion') setActiveTab('editor'); }}
+                      placeholder="Ej: 8/8/8/8/8/q1q5/qKq5/8 w - - 0 1"
+                      style={{ 
+                        width: '100%', padding: '0.8rem', borderRadius: '4px', background: '#0d1117', 
+                        color: '#c9d1d9', border: '1px solid #30363d', boxSizing: 'border-box', fontFamily: 'monospace'
+                      }}
+                    />
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#8b949e' }}>
+                      Pista: Modifica el FEN gráficamente desde la pestaña <b>Editor</b>.
+                    </div>
+                  </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                       Tiempo Máximo Jugada IA: <span style={{color: '#58a6ff'}}>{timeLimit}s</span>

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-type Piece = { type: string; color: 'w' | 'b' } | null;
+export type Piece = { type: string; color: 'w' | 'b' } | null;
 
 export type Theme = 'classic_dark' | 'wood' | 'ocean' | 'neon';
 
@@ -14,7 +14,7 @@ interface ChessboardProps {
   playerColor?: 'w' | 'b';
 }
 
-const fenToGrid = (fen: string): Piece[][] => {
+export const fenToGrid = (fen: string): Piece[][] => {
   const parts = fen.split(' ')[0];
   const rows = parts.split('/');
   const grid: Piece[][] = [];
@@ -35,11 +35,11 @@ const fenToGrid = (fen: string): Piece[][] => {
   return grid;
 };
 
-const PIECE_UNICODE: Record<string, string> = {
+export const PIECE_UNICODE: Record<string, string> = {
   'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚'
 };
 
-const getThemeColors = (theme: Theme) => {
+export const getThemeColors = (theme: Theme) => {
   switch (theme) {
     case 'wood': return { light: '#f0d9b5', dark: '#b58863', coordL: '#b58863', coordD: '#f0d9b5', lastM: 'rgba(155, 199, 0, 0.41)' };
     case 'ocean': return { light: '#dee3e6', dark: '#8ca2ad', coordL: '#8ca2ad', coordD: '#dee3e6', lastM: 'rgba(32, 178, 170, 0.5)' };
@@ -49,7 +49,7 @@ const getThemeColors = (theme: Theme) => {
   }
 };
 
-const getPieceStyle = (theme: Theme, color: 'w' | 'b') => {
+export const getPieceStyle = (theme: Theme, color: 'w' | 'b') => {
   const isWhite = color === 'w';
   switch (theme) {
     case 'neon': return { fill: isWhite ? '#00f0ff' : '#e838ff', stroke: 'none', strokeWidth: '0' };

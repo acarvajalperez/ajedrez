@@ -9,6 +9,11 @@ void Game::reset() {
     history.clear();
 }
 
+void Game::setFEN(const std::string& fen) {
+    board.parseFEN(fen);
+    history.clear();
+}
+
 Board Game::getBoard() const {
     return board;
 }
