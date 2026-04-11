@@ -14,8 +14,8 @@ The project is divided into two radically different shells communicating via FEN
 *   **No Heavy External Libraries**: The iterative board (`Chessboard.tsx`) and pieces are rendered using pure mathematics and mapped `<svg>` graphics. No heavy libraries like `react-chessboard` or `chess.js` are used.
 *   **Tactile Drag & Drop**: Smooth drag system using raw `onMouseDown`, `onMouseMove` mouse events, guaranteeing maximum compatibility.
 *   **Immersive Visuals & Organic Animations**: Radial gradients to highlight the King when in "Mathematical Check", opacity variables during drag, and predefined palette grid texturing. Features deterministic, organic piece animations with a 30% staggered overlap during history navigation and captures for a fluid user experience.
-*   **Real-Time Control Panel & UI**: Telemetry, Move History, Dynamic Theme Switching, and a feature-rich interface including a **Dual Analog/Digital Chess Clock**.
-*   **Advanced Game Setup**: Includes a Side Selection system (Play as White or Black against the AI) and support for custom FEN string initialization to test arbitrary game states.
+*   **Real-Time Control Panel & UI**: Live Telemetry, full Move History visualization, Dynamic Theme Switching, and a feature-rich interface including a **Dual Analog/Digital Chess Clock**.
+*   **Advanced Game Setup & Board Editor**: Includes a Side Selection system (Play as White, Black, or watch a **Spectator Mode** AI vs AI game), and a full **Visual Board Editor** to intuitively set up arbitrary board positions and generate custom FEN strings on the fly.
 
 ### 2. Backend (C++ 17 + cpp-httplib)
 *   A multi-threaded RESTful micro-server equipped with enabled `CORS` headers that dispatches bidirectional JSON using `nlohmann/json`.

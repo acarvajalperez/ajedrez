@@ -14,8 +14,8 @@ El proyecto se divide en dos caparazones radicalmente diferentes que se comunica
 *   **Sin Librerías Externas**: El tablero iterativo (`Chessboard.tsx`) y las piezas se redenderizan usando matemáticas puras y gráficos `<svg>` mapeados. No se usan librerías pesadas como `react-chessboard` o `chess.js`.
 *   **Drag & Drop Táctil**: Sistema de arrastre suave usando eventos de ratón `onMouseDown`, `onMouseMove` en crudo, garantizando compatibilidad.
 *   **Visuales Inmersivos y Animaciones**: Gradientes radiales para destacar al Rey cuando se encuentra en "Jaque Matemático", variables de opacidad durante el arrastre y texturización de las cuadrículas. Implementa transiciones de piezas deterministas y fluidas, con **animaciones orgánicas escalonadas** (30% de solapamiento) al navegar por el historial o efectuar capturas.
-*   **Panel de Control en Tiempo Real y UI**: Telemetría, Historial, Temas Dinámicos intercambiables, un **Reloj de Ajedrez dual Analógico/Digital**, y controles sobre el límite GFLOPS Limits y asignación de Núcleos CPU (Threads).
-*   **Configuración Avanzada**: Sistema de selección de bando para jugar como Blancas o Negras contra la IA, e interfaz de entrada FEN para inicializar y probar estados arbitrarios de juego.
+*   **Panel de Control en Tiempo Real y UI**: Telemetría en vivo, visualización del Historial de Movimientos, Temas Dinámicos intercambiables, un **Reloj de Ajedrez dual Analógico/Digital**, y controles sobre el límite de tiempo y asignación de Núcleos CPU (Threads).
+*   **Configuración Avanzada y Board Editor**: Sistema de selección de bando (jugar como Blancas, Negras o ver partidas IA vs IA en **Modo Espectador**), y un **Editor Visual de Tablero** completo para configurar posiciones de forma intuitiva y generar parámetros FEN al vuelo.
 
 ### 2. Backend (C++ 17 + cpp-httplib)
 *   Un micro-servidor RESTful multihilo montado con cabeceras `CORS` habilitadas que despacha JSON bidireccional mediante `nlohmann`.
