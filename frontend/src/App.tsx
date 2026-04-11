@@ -364,6 +364,33 @@ function App() {
             shape="rectangular"
             size="large"
           />
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #30363d' }}>
+            <button 
+              onClick={() => setUser({ name: 'Anónimo', given_name: 'Anónimo', email: '', picture: '' })}
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                background: 'transparent',
+                color: '#8b949e',
+                border: '1px solid #30363d',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.borderColor = '#8b949e';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = '#8b949e';
+                e.currentTarget.style.borderColor = '#30363d';
+              }}
+            >
+              Jugar como Anónimo
+            </button>
+          </div>
         </div>
       </div>
     )

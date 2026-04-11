@@ -6,7 +6,7 @@ import './index.css'
 
 import { GoogleOAuthProvider } from '@react-oauth/google'
 
-const GOOGLE_CLIENT_ID = "60771938976-3c97oosnoq47bm66965ed8nfl93q21uo.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "<TU_GOOGLE_CLIENT_ID>";
 
 const currentPath = window.location.pathname;
 
